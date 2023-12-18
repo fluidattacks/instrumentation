@@ -8,5 +8,7 @@ public final class Agent {
 
     public static void premain(String args, Instrumentation instrumentation) {
         System.out.println("Hello World from the agent");
+
+        instrumentation.addTransformer(new ClassTransformer(), true);
     }
 }
