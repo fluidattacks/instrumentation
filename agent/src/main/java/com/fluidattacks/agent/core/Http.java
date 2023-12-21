@@ -4,10 +4,18 @@ import java.util.Arrays;
 
 import com.fluidattacks.agent.context.HttpRequestContext;
 import com.fluidattacks.agent.context.RequestContext;
+import com.fluidattacks.agent.http.IASTServletRequest;
+import com.fluidattacks.agent.http.IASTServletResponse;
 
 public class Http {
 
 	public static void leaveHttp() {
+		IASTServletRequest request = RequestContext.getHttpRequestContextThreadLocal()
+				.getServletRequest();
+		System.out.printf("URL            : %s \n", request.getRequestURL().toString());
+		System.out.printf("URI            : %s \n", request.getRequestURI().toString());
+		System.out.printf("QueryString    : %s \n", request.getQueryString().toString());
+		System.out.printf("HTTP Method    : %s \n", request.getMethod());
 		RequestContext.getHttpRequestContextThreadLocal().getCallChain().forEach(item -> {
 			if (item.getChainType().contains("leave")) {
 				String returnData = null;
@@ -20,17 +28,17 @@ public class Http {
 				}
 
 				System.out
-						.printf("Type: %s CALL Method Name: %s CALL Method Return: %s \n", item.getChainType(),
-								item.getJavaClassName() +"#"+ item.getJavaMethodName(), returnData);
+						.printf("Type: %s CALL Method Name: %s#%s CALL Method Return: %s \n", item.getChainType(),
+								item.getJavaClassName(), item.getJavaMethodName(), returnData);
 			} else {
 				System.out
-						.printf("Type: %s CALL Method Name: %s CALL Method Args: %s \n", item.getChainType(),
-								item.getJavaClassName() +"#"+ item.getJavaMethodName(),
+						.printf("Type: %s CALL Method Name: %s#%s CALL Method Args: %s \n", item.getChainType(),
+								item.getJavaClassName(), item.getJavaMethodName(),
 								Arrays.asList(item.getArgumentArray()));
 			}
 
 			if (item.getChainType().contains("Sink")) {
-				int                 depth    = 1;
+				int depth = 1;
 				StackTraceElement[] elements = item.getStackTraceElement();
 
 				for (StackTraceElement element : elements) {
@@ -54,7 +62,10 @@ public class Http {
 	public static void enterHttp(Object[] objects) {
 		System.out.println(String.format("The function length args is: %s", objects.length));
 		if (!haveEnterHttp()) {
-			RequestContext.setHttpRequestContextThreadLocal();
+			IASTServletRequest request = new IASTServletRequest(objects[0]);
+			IASTServletResponse response = new IASTServletResponse(objects[1]);
+
+			RequestContext.setHttpRequestContextThreadLocal(request, response);
 		}
 	}
 }

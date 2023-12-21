@@ -15,7 +15,14 @@ public class HttpClassVisitorHandler implements Handler {
     public MethodVisitor ClassVisitorHandler(MethodVisitor methodVisitor, final String className, int methodAccess,
             String methodName, String desc, String signature, String[] exceptions) {
 
-        if (true) {
+        if (methodName.contains("invokeHandlerMethod")
+                &&
+                desc.contains(
+                        "(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;Lorg/springframework/web/method/HandlerMethod;)Lorg/springframework/web/servlet/ModelAndView;")) {
+            System.out.println(
+                    String.format(
+                            "HTTP Process class name is: %s, the method name is: %s, the method descriptor is: %s, the signature is: %s, exceptions: %s",
+                            className, methodName, desc, signature, exceptions));
             final boolean isStatic = Modifier.isStatic(methodAccess);
             final Type argsType = Type.getType(Object[].class);
 
@@ -25,25 +32,24 @@ public class HttpClassVisitorHandler implements Handler {
                             className, methodName, desc, signature, exceptions));
 
             return new AdviceAdapter(Opcodes.ASM5, methodVisitor, methodAccess, methodName, desc) {
-
                 boolean isRequestHandler = false;
 
                 @Override
                 protected void onMethodEnter() {
-                    if (this.isRequestHandler) {
+                    if (true) {
                         System.out.println(String.format("Trying to modify the request handler %s", methodName));
                         loadArgArray();
                         int argsIndex = newLocal(argsType);
                         storeLocal(argsIndex, argsType);
                         loadLocal(argsIndex);
 
-                        if (isStatic) {
-                            push((Type) null);
-                        } else {
-                            loadThis();
-                        }
+                        // if (isStatic) {
+                        // push((Type) null);
+                        // } else {
+                        // loadThis();
+                        // }
 
-                        loadLocal(argsIndex);
+                        // loadLocal(argsIndex);
 
                         methodVisitor.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Http",
                                 "enterHttp",
