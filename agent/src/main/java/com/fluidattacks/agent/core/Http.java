@@ -16,6 +16,9 @@ public class Http {
 		System.out.printf("URI            : %s \n", request.getRequestURI().toString());
 		System.out.printf("QueryString    : %s \n", request.getQueryString().toString());
 		System.out.printf("HTTP Method    : %s \n", request.getMethod());
+		System.out.println(String.format("Call chian length : %s",
+				RequestContext.getHttpRequestContextThreadLocal().getCallChain().toArray().length));
+
 		RequestContext.getHttpRequestContextThreadLocal().getCallChain().forEach(item -> {
 			if (item.getChainType().contains("leave")) {
 				String returnData = null;
@@ -42,8 +45,8 @@ public class Http {
 				StackTraceElement[] elements = item.getStackTraceElement();
 
 				for (StackTraceElement element : elements) {
-					if (element.getClassName().contains("com.fluidattacks.agent") ||
-							element.getClassName().contains("java.lang.Thread")) {
+					if (element.getClassName().contains("com/fluidattacks/agent") ||
+							element.getClassName().contains("java/lang/Thread")) {
 						continue;
 					}
 					System.out.printf("%9s".replace("9", String.valueOf(depth)), "");
