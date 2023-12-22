@@ -9,6 +9,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.fluidattacks.agent.visitors.handler.HttpClassVisitorHandler;
+import com.fluidattacks.agent.visitors.handler.SourceClassVisitorHandler;
 
 public class IASTClassVisitor extends ClassVisitor implements Opcodes {
     private final String className;
@@ -20,17 +21,32 @@ public class IASTClassVisitor extends ClassVisitor implements Opcodes {
     }
 
     @Override
-    public MethodVisitor visitMethod(final int access, final String name, final String description, final String signature,
+    public MethodVisitor visitMethod(final int access, final String name, final String description,
+            final String signature,
             String[] exceptions) {
         String newDescription = description;
-        boolean isRequestHandler = name.contains("invokeHandlerMethod")
-        // in webgoat  jakarta/servlet/http/HttpServletRequest
-        && description.contains("(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;Lorg/springframework/web/method/HandlerMethod;)Lorg/springframework/web/servlet/ModelAndView;")
-        ;
+        boolean isRequestHandler = name.equals("service")
+                && this.className.contains("HttpServlet")
+                // in webgoat jakarta/servlet/http/HttpServletRequest
+                && description
+                        .contains("(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V");
         MethodVisitor mv = super.visitMethod(access, name, newDescription, signature, exceptions);
         if (isRequestHandler) {
+            // System.out.printf("%s#%s %s\n", className, name, description);
+            // System.out.println("---------------");
             HttpClassVisitorHandler httpClassVisitorHandler = new HttpClassVisitorHandler();
-            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name, newDescription, signature, exceptions);
+            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name, newDescription, signature,
+                    exceptions);
+        }
+
+        if (name.contains("getParameterValues") && className.contains("ServletWebRequest")) {
+            // System.out.printf("%s#%s %s\n", className, name, description);
+        }
+        if (name.contains("resolveName") && className.contains("RequestParamMethodArgumentResolver")) {
+            // System.out.printf("%s#%s %s\n", className, name, description);
+            SourceClassVisitorHandler httpClassVisitorHandler = new SourceClassVisitorHandler();
+            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name, newDescription, signature,
+                    exceptions);
         }
 
         return mv;

@@ -15,10 +15,10 @@ public class HttpClassVisitorHandler implements Handler {
     public MethodVisitor ClassVisitorHandler(MethodVisitor methodVisitor, final String className, int methodAccess,
             String methodName, String desc, String signature, String[] exceptions) {
 
-        if (methodName.contains("invokeHandlerMethod")
+        if (methodName.contains("service")
                 &&
                 desc.contains(
-                        "(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;Lorg/springframework/web/method/HandlerMethod;)Lorg/springframework/web/servlet/ModelAndView;")) {
+                        "(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V")) {
             System.out.println(
                     String.format(
                             "HTTP Process class name is: %s, the method name is: %s, the method descriptor is: %s, the signature is: %s, exceptions: %s",
