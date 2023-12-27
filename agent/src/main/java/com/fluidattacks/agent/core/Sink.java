@@ -1,6 +1,6 @@
 package com.fluidattacks.agent.core;
 
-import static  com.fluidattacks.agent.core.Http.haveEnterHttp;
+import static com.fluidattacks.agent.core.Http.haveEnterHttp;
 
 import com.fluidattacks.agent.context.CallChain;
 import com.fluidattacks.agent.context.RequestContext;
@@ -15,14 +15,6 @@ public class Sink {
 			String javaMethodDesc,
 			boolean isStatic) {
 		if (haveEnterHttp()) {
-			System.out.println("Enter to new Sink");
-			System.out.println("enterSink");
-			System.out.println(javaClassName);
-			System.out.println(javaMethodName);
-			System.out.println(javaMethodDesc);
-			System.out.println(isStatic);
-			System.out.println(argumentArray);
-		}
 			CallChain callChain = new CallChain();
 			callChain.setChainType("enterSink");
 			callChain.setArgumentArray(argumentArray);
@@ -34,3 +26,4 @@ public class Sink {
 			RequestContext.getHttpRequestContextThreadLocal().addCallChain(callChain);
 		}
 	}
+}
