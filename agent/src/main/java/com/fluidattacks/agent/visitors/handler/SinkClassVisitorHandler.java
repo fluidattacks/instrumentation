@@ -9,9 +9,6 @@ import com.fluidattacks.agent.visitors.Handler;
 
 import java.lang.reflect.Modifier;
 
-/**
- * @author iiusky - 03sec.com
- */
 public class SinkClassVisitorHandler implements Handler {
 
 	private static final String METHOD_DESC = "()Ljava/lang/Process;";

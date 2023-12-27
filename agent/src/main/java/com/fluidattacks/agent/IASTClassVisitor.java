@@ -1,14 +1,13 @@
 package com.fluidattacks.agent;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.fluidattacks.agent.visitors.handler.HttpClassVisitorHandler;
+import com.fluidattacks.agent.visitors.handler.PropagatorClassVisitorHandler;
+import com.fluidattacks.agent.visitors.handler.SinkClassVisitorHandler;
 import com.fluidattacks.agent.visitors.handler.SourceClassVisitorHandler;
 
 public class IASTClassVisitor extends ClassVisitor implements Opcodes {
@@ -30,25 +29,39 @@ public class IASTClassVisitor extends ClassVisitor implements Opcodes {
                 // in webgoat jakarta/servlet/http/HttpServletRequest
                 && description
                         .contains("(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V");
+
         MethodVisitor mv = super.visitMethod(access, name, newDescription, signature, exceptions);
+
         if (isRequestHandler) {
-            // System.out.printf("%s#%s %s\n", className, name, description);
-            // System.out.println("---------------");
             HttpClassVisitorHandler httpClassVisitorHandler = new HttpClassVisitorHandler();
-            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name, newDescription, signature,
+            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
+                    newDescription, signature,
                     exceptions);
         }
 
-        if (name.contains("getParameterValues") && className.contains("ServletWebRequest")) {
+        if (name.contains("getParameterValues") &&
+                className.contains("ServletWebRequest")) {
             // System.out.printf("%s#%s %s\n", className, name, description);
         }
-        if (name.contains("resolveName") && className.contains("RequestParamMethodArgumentResolver")) {
-            // System.out.printf("%s#%s %s\n", className, name, description);
+        if (name.contains("resolveName") &&
+                className.contains("RequestParamMethodArgumentResolver")) {
             SourceClassVisitorHandler httpClassVisitorHandler = new SourceClassVisitorHandler();
-            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name, newDescription, signature,
+            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
+                    newDescription, signature,
                     exceptions);
         }
 
+        if (name.equals("execute") && description.contains("(Ljava/lang/String;)V")) {
+            SinkClassVisitorHandler sinkClassVisitorHandler = new SinkClassVisitorHandler();
+            mv = sinkClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
+                    newDescription, signature,
+                    exceptions);
+        } else {
+            PropagatorClassVisitorHandler propagatorClassVisitorHandler = new PropagatorClassVisitorHandler();
+            mv = propagatorClassVisitorHandler.ClassVisitorHandler(mv, className, access,
+                    name, description, signature,
+                    exceptions);
+        }
         return mv;
     }
 
@@ -59,4 +72,5 @@ public class IASTClassVisitor extends ClassVisitor implements Opcodes {
         }
         return cv.visitAnnotation(desc, vis);
     }
+
 }

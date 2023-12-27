@@ -5,9 +5,6 @@ import static com.fluidattacks.agent.core.Http.haveEnterHttp;
 import com.fluidattacks.agent.context.CallChain;
 import com.fluidattacks.agent.context.RequestContext;
 
-/**
- * @author iiusky - 03sec.com
- */
 public class Sink {
 	public static void enterSink(Object[] argumentArray,
 			String javaClassName,

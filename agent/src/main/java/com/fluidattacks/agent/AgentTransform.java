@@ -15,24 +15,31 @@ public class AgentTransform implements ClassFileTransformer {
             byte[] classfileBuffer) throws IllegalClassFormatException {
 
         if (className.contains("com/fluidattacks/agent")) {
-            // System.out.println("Skip class: " + className);
             return classfileBuffer;
         }
 
         if (className.contains("java/lang/invoke")) {
-            // System.out.println("Skip class: " + className);
             return classfileBuffer;
         }
-        // System.out.println(String.format("The class %s is a REST controller", className));
-        ClassReader classReader = new ClassReader(classfileBuffer);
+        ClassReader classReader;
+        try {
+
+            classReader = new ClassReader(classfileBuffer);
+        } catch (Exception e) {
+            return classfileBuffer;
+        }
         ClassWriter classWriter = new ClassWriter(new ClassReader(classfileBuffer), ClassWriter.COMPUTE_MAXS);
+
         ClassVisitor classVisitor = new IASTClassVisitor(className, classWriter);
-
         classReader.accept(classVisitor, ClassReader.EXPAND_FRAMES);
-        // byte[] enhanced = classWriter.toByteArray();
+        // if (className.contains("com/applicationsec/Controller")) {
+        // PrintWriter printWriter = new PrintWriter(System.out);
+        // TraceClassVisitor traceClassVisitor = new TraceClassVisitor(null, new
+        // ASMifier(), printWriter);
 
-        // classfileBuffer = classWriter.toByteArray();
-        // className = className.replace("/", ".");
+        // classReader.accept(traceClassVisitor, 0);
+        // printWriter.flush();
+        // }
 
         return classWriter.toByteArray();
     }
