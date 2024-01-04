@@ -350,4 +350,14 @@ public class IASTServletRequest {
 			return 0;
 		}
 	}
+	public int getHashCode() {
+		try {
+			Method method = requestClass.getMethod("hashCode");
+			method.setAccessible(true);
+			return (Integer) method.invoke(request);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
 }

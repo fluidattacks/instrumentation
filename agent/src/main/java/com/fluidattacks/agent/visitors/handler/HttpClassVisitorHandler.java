@@ -12,71 +12,132 @@ import com.fluidattacks.agent.visitors.Handler;
 
 public class HttpClassVisitorHandler implements Handler {
 
-    public MethodVisitor ClassVisitorHandler(MethodVisitor methodVisitor, final String className, int methodAccess,
-            String methodName, String desc, String signature, String[] exceptions) {
+        public MethodVisitor ClassVisitorHandler(MethodVisitor methodVisitor, final String className, int methodAccess,
+                        String methodName, String desc, String signature, String[] exceptions) {
 
-        if (methodName.contains("service")
-                &&
-                desc.contains(
-                        "(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V")) {
-            System.out.println(
-                    String.format(
-                            "HTTP Process class name is: %s, the method name is: %s, the method descriptor is: %s, the signature is: %s, exceptions: %s",
-                            className, methodName, desc, signature, exceptions));
-            final boolean isStatic = Modifier.isStatic(methodAccess);
-            final Type argsType = Type.getType(Object[].class);
+                return new AdviceAdapter(Opcodes.ASM5, methodVisitor, methodAccess, methodName, desc) {
+                        boolean isRequestHandler = false;
 
-            System.out.println(
-                    String.format(
-                            "HTTP Process class name is: %s, the method name is: %s, the method descriptor is: %s, the signature is: %s, exceptions: %s",
-                            className, methodName, desc, signature, exceptions));
+                        @Override
+                        protected void onMethodEnter() {
+                                if (this.isRequestHandler) {
+                                        try {
+                                                // ServletRequestAttributes servletRequestAttributes =
+                                                // (ServletRequestAttributes)
+                                                // RequestContextHolder.getRequestAttributes();
+                                                mv.visitMethodInsn(INVOKESTATIC,
+                                                                "org/springframework/web/context/request/RequestContextHolder",
+                                                                "getRequestAttributes",
+                                                                "()Lorg/springframework/web/context/request/RequestAttributes;",
+                                                                false);
+                                                int servletRequestAttributesIndex = newLocal(
+                                                                Type.getType("Lorg/springframework/web/context/request/RequestAttributes;"));
+                                                mv.visitTypeInsn(CHECKCAST,
+                                                                "org/springframework/web/context/request/ServletRequestAttributes");
+                                                storeLocal(servletRequestAttributesIndex); // Storing the value in the
+                                                                                           // allocated local
+                                                                                           // variable
 
-            return new AdviceAdapter(Opcodes.ASM5, methodVisitor, methodAccess, methodName, desc) {
-                boolean isRequestHandler = false;
+                                                // HttpServletRequest request = servletRequestAttributes.getRequest();
+                                                loadLocal(servletRequestAttributesIndex);
+                                                mv.visitMethodInsn(INVOKEVIRTUAL,
+                                                                "org/springframework/web/context/request/ServletRequestAttributes",
+                                                                "getRequest",
+                                                                "()Ljakarta/servlet/http/HttpServletRequest;", false);
+                                                int requestIndex = newLocal(
+                                                                Type.getType("Ljakarta/servlet/http/HttpServletRequest;"));
+                                                storeLocal(requestIndex);
 
-                @Override
-                protected void onMethodEnter() {
-                    if (true) {
-                        System.out.println(String.format("Trying to modify the request handler %s", methodName));
-                        loadArgArray();
-                        int argsIndex = newLocal(argsType);
-                        storeLocal(argsIndex, argsType);
-                        loadLocal(argsIndex);
+                                                // HttpServletRequest response = servletRequestAttributes.getResponse();
+                                                loadLocal(servletRequestAttributesIndex);
+                                                mv.visitMethodInsn(INVOKEVIRTUAL,
+                                                                "org/springframework/web/context/request/ServletRequestAttributes",
+                                                                "getResponse",
+                                                                "()Ljakarta/servlet/http/HttpServletResponse;", false);
+                                                int responseIndex = newLocal(
+                                                                Type.getType("Ljakarta/servlet/http/HttpServletResponse;"));
+                                                storeLocal(responseIndex);
 
-                        // if (isStatic) {
-                        // push((Type) null);
-                        // } else {
-                        // loadThis();
-                        // }
+                                                loadLocal(requestIndex);
+                                                loadLocal(responseIndex);
+                                                mv.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Http",
+                                                                "enterHttp", "(Ljava/lang/Object;Ljava/lang/Object;)V",
+                                                                false);
 
-                        // loadLocal(argsIndex);
+                                                final boolean isStatic = Modifier.isStatic(methodAccess);
+                                                loadLocal(requestIndex);
+                                                // hashCode() - Here we need to use INVOKEINTERFACE because
+                                                // HttpServletRequest
+                                                // is an interface
+                                                mv.visitMethodInsn(INVOKEINTERFACE,
+                                                                "jakarta/servlet/http/HttpServletRequest", "hashCode",
+                                                                "()I",
+                                                                true);
+                                                loadArgArray();
+                                                int argsIndex = newLocal(Type.getType(Object[].class));
+                                                storeLocal(argsIndex, Type.getType(Object[].class));
+                                                loadLocal(argsIndex);
+                                                push(className);
+                                                push(methodName);
+                                                push(desc);
+                                                push(isStatic);
 
-                        methodVisitor.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Http",
-                                "enterHttp",
-                                "([Ljava/lang/Object;)V", false);
-                    }
+                                                mv.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Source",
+                                                                "enterSource",
+                                                                "(I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V",
+                                                                false);
+                                                super.onMethodEnter();
+                                        } catch (Exception e) {
+                                                e.printStackTrace();
+                                        }
+                                }
+                        }
 
-                }
+                        @Override
+                        protected void onMethodExit(int i) {
+                                super.onMethodExit(i);
+                                if (this.isRequestHandler) {
+                                        // RequestContextHolder.getRequestAttributes()
+                                        mv.visitMethodInsn(INVOKESTATIC,
+                                                        "org/springframework/web/context/request/RequestContextHolder",
+                                                        "getRequestAttributes",
+                                                        "()Lorg/springframework/web/context/request/RequestAttributes;",
+                                                        false);
 
-                @Override
-                protected void onMethodExit(int i) {
-                    super.onMethodExit(i);
-                    mv.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Http",
-                            "leaveHttp", "()V",
-                            false);
-                }
+                                        // Cast to ServletRequestAttributes
+                                        mv.visitTypeInsn(CHECKCAST,
+                                                        "org/springframework/web/context/request/ServletRequestAttributes");
 
-                @Override
-                public AnnotationVisitor visitAnnotation(String desc, boolean vis) {
-                    System.out.println(desc);
-                    if (desc.contains("Lorg/springframework/web/bind/annotation/GetMapping;")) {
-                        this.isRequestHandler = true;
-                    }
-                    return mv.visitAnnotation(desc, vis);
-                }
-            };
+                                        // getRequest()
+                                        mv.visitMethodInsn(INVOKEVIRTUAL,
+                                                        "org/springframework/web/context/request/ServletRequestAttributes",
+                                                        "getRequest",
+                                                        "()Ljakarta/servlet/http/HttpServletRequest;", false);
+
+                                        // hashCode() - Here we need to use INVOKEINTERFACE because HttpServletRequest
+                                        // is an interface
+                                        mv.visitMethodInsn(INVOKEINTERFACE, "jakarta/servlet/http/HttpServletRequest",
+                                                        "hashCode", "()I",
+                                                        true);
+
+                                        // Http.leaveHttp(request.hashCode());
+                                        mv.visitMethodInsn(INVOKESTATIC, "com/fluidattacks/agent/core/Http",
+                                                        "leaveHttp", "(I)V", false);
+                                }
+                        }
+
+                        @Override
+                        public AnnotationVisitor visitAnnotation(String desc, boolean vis) {
+                                if (desc.contains("Lorg/springframework/web/bind/annotation/GetMapping;")
+                                                || desc.contains(
+                                                                "Lorg/springframework/web/bind/annotation/PostMapping;")) {
+                                        this.isRequestHandler = true;
+                                        System.out.printf("The method %s#%s is a request handler\n", className,
+                                                        methodName);
+                                }
+                                return mv.visitAnnotation(desc, vis);
+                        }
+                };
         }
-        return methodVisitor;
-    }
 
 }

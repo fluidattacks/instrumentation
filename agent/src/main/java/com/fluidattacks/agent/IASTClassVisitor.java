@@ -4,6 +4,7 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.AdviceAdapter;
 
 import com.fluidattacks.agent.visitors.handler.HttpClassVisitorHandler;
 import com.fluidattacks.agent.visitors.handler.PropagatorClassVisitorHandler;
@@ -15,7 +16,7 @@ public class IASTClassVisitor extends ClassVisitor implements Opcodes {
     private boolean isController;
 
     public IASTClassVisitor(String className, ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Opcodes.ASM9, cv);
         this.className = className;
     }
 
@@ -23,45 +24,43 @@ public class IASTClassVisitor extends ClassVisitor implements Opcodes {
     public MethodVisitor visitMethod(final int access, final String name, final String description,
             final String signature,
             String[] exceptions) {
-        String newDescription = description;
-        boolean isRequestHandler = name.equals("service")
-                && this.className.contains("HttpServlet")
-                // in webgoat jakarta/servlet/http/HttpServletRequest
-                && description
-                        .contains("(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V");
+        MethodVisitor mv = super.visitMethod(access, name, description, signature, exceptions);
 
-        MethodVisitor mv = super.visitMethod(access, name, newDescription, signature, exceptions);
-
-        if (isRequestHandler) {
+        if (this.isController) {
             HttpClassVisitorHandler httpClassVisitorHandler = new HttpClassVisitorHandler();
             mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
-                    newDescription, signature,
+                    description, signature,
                     exceptions);
         }
 
-        if (name.contains("getParameterValues") &&
-                className.contains("ServletWebRequest")) {
-            // System.out.printf("%s#%s %s\n", className, name, description);
-        }
-        if (name.contains("resolveName") &&
-                className.contains("RequestParamMethodArgumentResolver")) {
-            SourceClassVisitorHandler httpClassVisitorHandler = new SourceClassVisitorHandler();
-            mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
-                    newDescription, signature,
-                    exceptions);
-        }
+        // if (name.contains("getParameterValues") &&
+        // className.contains("ServletWebRequest")) {
+        // System.out.printf("%s#%s %s\n", className, name, description);
+        // }
+        // if ((name.contains("resolveName") &&
+        // className.contains("RequestParamMethodArgumentResolver")) ||
+        // name.contains("getMethodArgumentValues")) {
+        // SourceClassVisitorHandler httpClassVisitorHandler = new
+        // SourceClassVisitorHandler();
+        // mv = httpClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
+        // newDescription, signature,
+        // exceptions);
+        // }
 
-        if (name.equals("execute") && description.contains("(Ljava/lang/String;)V")) {
+        if (name.contains("executeQuery")) {
             SinkClassVisitorHandler sinkClassVisitorHandler = new SinkClassVisitorHandler();
             mv = sinkClassVisitorHandler.ClassVisitorHandler(mv, className, access, name,
-                    newDescription, signature,
-                    exceptions);
-        } else {
-            PropagatorClassVisitorHandler propagatorClassVisitorHandler = new PropagatorClassVisitorHandler();
-            mv = propagatorClassVisitorHandler.ClassVisitorHandler(mv, className, access,
-                    name, description, signature,
+                    description, signature,
                     exceptions);
         }
+        // else {
+        // // PropagatorClassVisitorHandler propagatorClassVisitorHandler = new
+        // // PropagatorClassVisitorHandler();
+        // // mv = propagatorClassVisitorHandler.ClassVisitorHandler(mv, className,
+        // access,
+        // // name, description, signature,
+        // // exceptions);
+        // }
         return mv;
     }
 
